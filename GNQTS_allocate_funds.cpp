@@ -13,7 +13,7 @@ using namespace std;
 namespace fs = std::filesystem;
 
 using namespace std;
-#define stock_number 50
+#define stock_number 30
 #define generation 10000
 #define particle_number 10
 #define rotate_angle 0.0004
@@ -21,18 +21,18 @@ using namespace std;
 #define rotate_angle_down 0.0004
 #define test_times 50
 #define test_period_flag 0
-#define short_selling_flag 1
+#define short_selling_flag 0
 #define allocate_fund_number 7
 
 double initial_investment = 10000000;
 int big = 0, small = 0;
 int day = 0;
 int choose_check = 0;
-vector<vector <double>> allocate_ratio;
+vector <double>  allocate_ratio[particle_number];
 
 //當代最佳
-vector<vector <double>> probability;
-vector<vector <int>> result[particle_number];
+vector <double> probability[stock_number];
+vector <int> result[particle_number][stock_number];
 vector <int> index[particle_number];
 vector <int> stock_choose_number;
 vector <double> money[particle_number], expected_return, risk, trend;
@@ -40,7 +40,7 @@ vector <double>  remain_money[particle_number], each_money[particle_number];
 vector <int> stock_buy_number[particle_number];
 
 //所有代數中最佳
-vector<vector <int>> result_global_max;
+vector <int> result_global_max[stock_number];
 double trend_global_max = 0, expected_return_global_max = 0, risk_global_max = 0;
 int gen_global_max = 0;
 vector <double>  remain_money_global_max, each_money_global_max, money_global_max;
@@ -52,18 +52,25 @@ vector <double>  remain_money_max, each_money_max, money_max;
 vector <int> stock_buy_number_max, index_max;
 int stock_choose_number_max = 0, gen_max = 0;
 double trend_max = 0, expected_return_max = 0, risk_max = 0;
-vector<vector <int>> result_max;
-
-
+vector <int> result_max[stock_number];
 
 //初始化機率陣列(全部皆為0.5)
 void initial_probability()
 {
 	for (int i = 0; i < stock_number; i++)
 	{
+		vector <double> prob_tmp;
 		for (int k = 0; k < allocate_fund_number; k++)
 		{
 			probability[i].push_back(0.5);
+		}
+	}
+
+	for (int i = 0; i < stock_number; i++)
+	{
+		for (int k = 0; k < allocate_fund_number; k++)
+		{
+			result_global_max[i].push_back(0);
 		}
 	}
 }
@@ -78,6 +85,7 @@ void measure()
 		int choose_number_count = 0;
 		for (int j = 0; j < stock_number; j++)
 		{
+			vector <int> result_allocate_tmp;
 			for (int k = 0; k < allocate_fund_number; k++)
 			{
 				a = rand() / 32767.0;
@@ -106,6 +114,8 @@ void allocate_ratio_normalization()
 {
 	double tmp_sum = 0.0;
 	double bit_sum = 0.0;
+	allocate_ratio->clear();
+
 	for (int i = 0; i < particle_number; i++)
 	{
 		for (int j = 0; j < stock_number; j++)
@@ -114,8 +124,8 @@ void allocate_ratio_normalization()
 			{
 				if (result[i][j][k] == 1)
 				{
-					tmp_sum += pow(2, k - 1);
-					bit_sum += pow(2, k - 1);
+					tmp_sum += pow(2, (-k - 1));
+					bit_sum += pow(2, (-k - 1));
 				}
 			}
 			allocate_ratio[i].push_back(bit_sum);
@@ -134,12 +144,13 @@ void fitness_cal(int day, vector <string> name, vector <double> d, int gen)
 {
 	vector <double>  stock_price;
 	double divide_remain_money;
-	int divide_money;
+	vector <int> divide_money;
 	string str;
 
 	int time_ch = 0;
 	int times = day + 1;
 	double option_return = 0.0;
+	double mul_of_price_number = 0;
 
 	for (int i = 0; i < particle_number; i++)
 	{
@@ -151,21 +162,33 @@ void fitness_cal(int day, vector <string> name, vector <double> d, int gen)
 			time_ch = 0;
 			continue;
 		}
+		else
+		{
+			divide_money.clear();
+			int a = 0;
+			for (int k = 0; k < stock_number; k++)
+			{
+				a = initial_investment * allocate_ratio[i][k];
+				divide_money.push_back(a);
+			}
+			
+		}
 
 		for (int j = 0; j < day; j++)
 		{
 			if (time_ch == 0)
 			{
-				divide_money = int(initial_investment / (double)stock_choose_number[i]);
+				//divide_money = int(initial_investment / (double)stock_choose_number[i]);
 
 				for (int h = 0; h < stock_choose_number[i]; h++)
 				{
 					stock_price.push_back(d[index[i][h]]);
-					stock_buy_number[i].push_back(double(divide_money) / stock_price[h]);
-					remain_money[i].push_back(divide_money - stock_price[h] * stock_buy_number[i][h]);
-					each_money[i].push_back(divide_money);
+					stock_buy_number[i].push_back(double(divide_money[index[i][h]]) / stock_price[h]);
+					remain_money[i].push_back(divide_money[index[i][h]] - stock_price[h] * stock_buy_number[i][h]);
+					each_money[i].push_back(divide_money[index[i][h]]);
+					mul_of_price_number += (double)divide_money[index[i][h]];
 				}
-				divide_remain_money = initial_investment - (double)divide_money * stock_choose_number[i];
+				divide_remain_money = initial_investment - mul_of_price_number;
 
 				money[i].push_back(initial_investment);
 			}
@@ -251,7 +274,12 @@ void find_max_min(int gen, int day)
 		stock_buy_number_global_max.clear();
 		index_global_max.clear();
 		money_global_max.clear();
-		result_global_max.clear();
+
+		for (int j = 0; j < stock_number; j++)
+		{
+			result_global_max[j].clear();
+		}
+		
 		for (int j = 0; j < stock_number; j++)
 		{
 			for (int k = 0; k < allocate_fund_number; k++)
@@ -311,7 +339,7 @@ void update(int test_time, int read_time, int gen)
 
 void output_each_slide_data(vector <string> name, vector <double> d, int day, int best_test_time, int best_count, string str)
 {
-	ofstream output("./2016-2020-50_new/fund_standardization/short/M2M/funds_standardization_short_" + str + ".csv");
+	ofstream output("./DJI/fund_standardization/long/M#/funds_standardization_long_" + str + ".csv");
 	output << fixed << setprecision(15);
 
 	if (trend_max <= 0)
@@ -437,7 +465,7 @@ void output_each_slide_data(vector <string> name, vector <double> d, int day, in
 
 void output_all_slide_data(vector <string> name, vector <double> d, int day, int best_test_time, int best_count, string str)
 {
-	ofstream output("./2016-2020-50_new/short-selling/train_period/train_Gbest_short__Portfolio_GNQTS_10000代_10粒子_0.0004_實驗50_M2M.csv", ios_base::app);
+	ofstream output("./DJI/long/train_period/train_Gbest_long__Portfolio_GNQTS_10000代_10粒子_0.0004_實驗50_M#.csv", ios_base::app);
 	output << fixed << setprecision(15);
 	output << str << ",";
 
@@ -484,6 +512,7 @@ void main_function(vector <string>& name, vector <double>& d, int& day, int test
 	for (int i = 0; i < generation; i++)
 	{
 		measure();
+		allocate_ratio_normalization();
 		fitness_cal(day, name, d, i);
 		find_max_min(i + 1, day);
 		not_gate();
@@ -491,7 +520,10 @@ void main_function(vector <string>& name, vector <double>& d, int& day, int test
 
 		for (int h = 0; h < particle_number; h++)
 		{
-			result[h].clear();
+			for (int k = 0; k < allocate_fund_number; k++)
+			{
+				result[h][k].clear();
+			}
 			index[h].clear();
 			money[h].clear();
 			stock_buy_number[h].clear();
@@ -562,7 +594,7 @@ void test_cal(int day, vector <string> name, vector <double> d, double test_init
 
 void test_output(vector <string> name, vector <double> d, int day, string str, double test_initial_investment)
 {
-	ofstream output("./2016-2020-50_new/long-trading/test_period/test_Gbest_long__Portfolio_GNQTS_10000代_10粒子_0.0004_實驗50_M2M.csv", ios_base::app);
+	ofstream output("./DJI/long/test_period/test_Gbest_long__Portfolio_GNQTS_10000代_10粒子_0.0004_實驗50_M#.csv", ios_base::app);
 	output << fixed << setprecision(15);
 	output << str << ",";
 
@@ -615,7 +647,10 @@ void local_clear()
 	for (int g = 0; g < particle_number; g++)
 	{
 		index[g].clear();
-		result[g].clear();
+		for (int j = 0; j < stock_number; j++)
+		{
+			result[g][j].clear();
+		}
 		money[g].clear();
 		remain_money[g].clear();
 		each_money[g].clear();
@@ -655,13 +690,13 @@ int main()
 	double test_initial_investment = 0;
 	test_initial_investment = initial_investment;
 	srand(114);
-	//ofstream output("train_Gbest__Portfolio_GNQTS_10000代_10粒子_0.0004_實驗50_M2M.csv", ios_base::app);
+	//ofstream output("train_Gbest__Portfolio_GNQTS_10000代_10粒子_0.0004_實驗50_M#.csv", ios_base::app);
 
-	for (auto& p : fs::directory_iterator("./2016-2020_50_13種滑動視窗股價/M2M/train"))
+	for (auto& p : fs::directory_iterator("./DJI30/M#/train"))
 	{
 		train_file.push_back(p.path());
 	}
-	for (auto& p : fs::directory_iterator("./2016-2020_50_13種滑動視窗股價/M2M/test"))
+	for (auto& p : fs::directory_iterator("./DJI30/M#/test"))
 	{
 		test_file.push_back(p.path());
 	}
@@ -706,7 +741,11 @@ int main()
 				stock_buy_number_max.clear();
 				index_max.clear();
 				money_max.clear();
-				result_max.clear();
+				for (int j = 0; j < stock_number; j++)
+				{
+					result_max[j].clear();
+				}
+
 				for (int j = 0; j < stock_number; j++)
 				{
 					for (int k = 0; k < allocate_fund_number; k++)
@@ -731,7 +770,11 @@ int main()
 			}
 
 			global_max_clear();
-			probability.clear();
+			for (int i = 0; i < particle_number; i++)
+			{
+				probability[i].clear();
+			}
+
 		}
 
 		output_each_slide_data(train_name, train_d, day, best_test_time, best_count, train_file[i].filename().generic_string());
@@ -743,7 +786,7 @@ int main()
 
 
 		//測試期
-		if (test_period_flag)
+		/*if (test_period_flag)
 		{
 			ifstream test_in(test_file[i]);
 			while (test_in >> str)
@@ -804,8 +847,9 @@ int main()
 		trend.clear();
 
 		test_global_max_clear();
-		result_max.clear();
+		result_max.clear();*/
 	}
-	//output << "程式總執行時間," << clock() / CLOCKS_PER_SEC << endl;
-	//output.close();
+		//output << "程式總執行時間," << clock() / CLOCKS_PER_SEC << endl;
+		//output.close();
+	
 }
