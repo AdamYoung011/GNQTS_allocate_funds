@@ -40,7 +40,7 @@ vector <double>  remain_money[particle_number], each_money[particle_number];
 vector <int> stock_buy_number[particle_number];
 
 //所有代數中最佳
-vector <int> result_global_max[stock_number];
+vector<vector <int> >result_global_max(stock_number, vector <int>(allocate_fund_number,0));
 double trend_global_max = 0, expected_return_global_max = 0, risk_global_max = 0;
 int gen_global_max = 0;
 vector <double>  remain_money_global_max, each_money_global_max, money_global_max;
@@ -63,14 +63,6 @@ void initial_probability()
 		for (int k = 0; k < allocate_fund_number; k++)
 		{
 			probability[i].push_back(0.5);
-		}
-	}
-
-	for (int i = 0; i < stock_number; i++)
-	{
-		for (int k = 0; k < allocate_fund_number; k++)
-		{
-			result_global_max[i].push_back(0);
 		}
 	}
 }
@@ -114,7 +106,10 @@ void allocate_ratio_normalization()
 {
 	double tmp_sum = 0.0;
 	double bit_sum = 0.0;
-	allocate_ratio->clear();
+	for (int i = 0; i < particle_number; i++)
+	{
+		allocate_ratio[i].clear();
+	}
 
 	for (int i = 0; i < particle_number; i++)
 	{
@@ -178,8 +173,6 @@ void fitness_cal(int day, vector <string> name, vector <double> d, int gen)
 		{
 			if (time_ch == 0)
 			{
-				//divide_money = int(initial_investment / (double)stock_choose_number[i]);
-
 				for (int h = 0; h < stock_choose_number[i]; h++)
 				{
 					stock_price.push_back(d[index[i][h]]);
@@ -339,7 +332,7 @@ void update(int test_time, int read_time, int gen)
 
 void output_each_slide_data(vector <string> name, vector <double> d, int day, int best_test_time, int best_count, string str)
 {
-	ofstream output("./DJI/fund_standardization/long/M#/funds_standardization_long_" + str + ".csv");
+	ofstream output("./DJI/fund_standardization/long/H2H/funds_standardization_long_" + str + ".csv");
 	output << fixed << setprecision(15);
 
 	if (trend_max <= 0)
@@ -465,7 +458,7 @@ void output_each_slide_data(vector <string> name, vector <double> d, int day, in
 
 void output_all_slide_data(vector <string> name, vector <double> d, int day, int best_test_time, int best_count, string str)
 {
-	ofstream output("./DJI/long/train_period/train_Gbest_long__Portfolio_GNQTS_10000代_10粒子_0.0004_實驗50_M#.csv", ios_base::app);
+	ofstream output("./DJI/long/train_period/train_Gbest_long__Portfolio_GNQTS_10000代_10粒子_0.0004_實驗50_H2H.csv", ios_base::app);
 	output << fixed << setprecision(15);
 	output << str << ",";
 
@@ -520,7 +513,7 @@ void main_function(vector <string>& name, vector <double>& d, int& day, int test
 
 		for (int h = 0; h < particle_number; h++)
 		{
-			for (int k = 0; k < allocate_fund_number; k++)
+			for (int k = 0; k < stock_number; k++)
 			{
 				result[h][k].clear();
 			}
@@ -594,7 +587,7 @@ void test_cal(int day, vector <string> name, vector <double> d, double test_init
 
 void test_output(vector <string> name, vector <double> d, int day, string str, double test_initial_investment)
 {
-	ofstream output("./DJI/long/test_period/test_Gbest_long__Portfolio_GNQTS_10000代_10粒子_0.0004_實驗50_M#.csv", ios_base::app);
+	ofstream output("./DJI/long/test_period/test_Gbest_long__Portfolio_GNQTS_10000代_10粒子_0.0004_實驗50_H2H.csv", ios_base::app);
 	output << fixed << setprecision(15);
 	output << str << ",";
 
@@ -690,25 +683,29 @@ int main()
 	double test_initial_investment = 0;
 	test_initial_investment = initial_investment;
 	srand(114);
-	//ofstream output("train_Gbest__Portfolio_GNQTS_10000代_10粒子_0.0004_實驗50_M#.csv", ios_base::app);
+	//ofstream output("train_Gbest__Portfolio_GNQTS_10000代_10粒子_0.0004_實驗50_H2H.csv", ios_base::app);
 
-	for (auto& p : fs::directory_iterator("./DJI30/M#/train"))
+	for (auto& p : fs::directory_iterator("./DJI30/H2H/train"))
 	{
 		train_file.push_back(p.path());
 	}
-	for (auto& p : fs::directory_iterator("./DJI30/M#/test"))
+	for (auto& p : fs::directory_iterator("./DJI30/H2H/test"))
 	{
 		test_file.push_back(p.path());
 	}
 
 	for (int i = 0; i < train_file.size(); i++)
 	{
+		/*if (i == 119)
+		{
+			int w=0;
+		}*/
 		read_time++;
 		ifstream train_in(train_file[i]);
 		string str;
 		while (train_in >> str)
 		{
-			str = str + ",";
+			//str = str + ",";
 			data_processing(train_name, train_d, str, line);
 			line++;
 		}
@@ -804,7 +801,7 @@ int main()
 				test_initial_investment = money[0][money[0].size() - 1];
 			}
 			test_output(test_name, test_d, day, test_file[i].filename().generic_string(), test_initial_investment);
-		}
+		}*/
 
 		test_name.clear();
 		test_d.clear();
@@ -817,19 +814,30 @@ int main()
 
 		best_count = 0;
 
-		probability.clear();
+		for (int g = 0; g < stock_number; g++)
+		{
+			probability[g].clear();
+		}
+		
 		trend.clear();
 		stock_choose_number.clear();
 		for (int g = 0; g < particle_number; g++)
 		{
 			index[g].clear();
-			result[g].clear();
+			for (int k = 0; k < stock_number; k++)
+			{
+				result[g][k].clear();
+			}
 			money[g].clear();
 			remain_money[g].clear();
 			each_money[g].clear();
 			stock_buy_number[g].clear();
 		}
-		result_global_max.clear();
+		for (int k = 0; k < stock_number; k++)
+		{
+			result_global_max[k].clear();
+		}
+		
 		for (int j = 0; j < stock_number; j++)
 		{
 			for (int k = 0; k < allocate_fund_number; k++)
@@ -847,7 +855,10 @@ int main()
 		trend.clear();
 
 		test_global_max_clear();
-		result_max.clear();*/
+		for (int k = 0; k < stock_number; k++)
+		{
+			result_max[k].clear();
+		}
 	}
 		//output << "程式總執行時間," << clock() / CLOCKS_PER_SEC << endl;
 		//output.close();
