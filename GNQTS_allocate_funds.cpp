@@ -139,14 +139,13 @@ void fitness_cal(int day, vector <string> name, vector <double> d, int gen)
 	vector <double>  stock_price;
 	double divide_remain_money;
 	string str;
-
 	int time_ch = 0;
 	int times = day + 1;
 	double option_return = 0.0;
-	double mul_of_price_number = 0.0;
-
+	
 	for (int i = 0; i < particle_number; i++)
 	{
+		double mul_of_price_number = 0.0;
 		if (stock_choose_number[i] == 0)
 		{
 			expected_return.push_back(0);
@@ -678,7 +677,7 @@ int main()
 	srand(114);
 	//ofstream output("train_Gbest__Portfolio_GNQTS_10000¥N_10²É¤l_0.0004_¹êÅç50_M2M.csv", ios_base::app);
 
-	for (auto& p : fs::directory_iterator("./DJI30/M2M/train"))
+	for (auto& p : fs::directory_iterator("./DJI30/M2M/train_test"))
 	{
 		train_file.push_back(p.path());
 	}
