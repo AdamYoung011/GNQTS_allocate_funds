@@ -266,6 +266,11 @@ void find_max_min(int gen, int day)
 		
 		for (int j = 0; j < stock_number; j++)
 		{
+			result_global_max[j].clear();
+		}
+		
+		for (int j = 0; j < stock_number; j++)
+		{
 			for (int k = 0; k < allocate_fund_number; k++)
 			{
 				result_global_max[j].push_back(result[big][j][k]);
@@ -500,25 +505,7 @@ void main_function(vector <string>& name, vector <double>& d, int& day, int test
 	//output << fixed << setprecision(15);
 	for (int i = 0; i < generation; i++)
 	{
-		if (i == 99)
-		{
-			int e = 0;
-		}
-
-		if (test_time == 2 && i == 0)
-		{
-			/*for (int c = 0; c < stock_number; c++)
-			{
-				//output << "generation," << i << ",particle," << b << ",stock," << c << ",";
-				for (int a = 0; a < 7; a++)
-				{
-					output << probability[c][a] << endl;
-				}
-			}*/
-		}
-		//output.close();
-
-		measure(test_time);
+		measure();
 		allocate_ratio_normalization();
 		fitness_cal(day, name, d, i);
 		find_max_min(i + 1, day);
@@ -724,10 +711,6 @@ int main()
 
 		for (int p = 0; p < test_times; p++)
 		{
-			if (p == 1)
-			{
-				int w = 0;
-			}
 
 			main_function(train_name, train_d, day, p + 1, line, read_time);
 
